@@ -1,0 +1,71 @@
+name: Multi-Platform Build & Tool Setup
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-update:
+    name: Build & Update Apps
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # --- UBUNTU SETUP & UPGRADE ---
+      - name: Update Applications (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          # Install/Upgrade Google Chrome
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          # Install/Upgrade Microsoft Edge
+          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+          sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
+          echo "deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge.list
+          rm microsoft.gpg
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable microsoft-edge-stable build-essential cmake libtool pkg-config librdkafka-dev libcjson-dev
+
+      # --- MACOS SETUP & UPGRADE ---
+      - name: Update Applications (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew update
+          brew upgrade --cask google-chrome microsoft-edge || brew install --cask google-chrome microsoft-edge
+
+      # --- WINDOWS SETUP & UPGRADE ---
+      - name: Update Applications (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          winget upgrade --id Google.Chrome --silent --accept-package-agreements --accept-source-agreements || winget install --id Google.Chrome --silent --accept-package-agreements --accept-source-agreements
+          winget upgrade --id Microsoft.Edge --silent --accept-package-agreements --accept-source-agreements || winget install --id Microsoft.Edge --silent --accept-package-agreements --accept-source-agreements
+
+      # --- BUILD STEP (KAFKADYNAMICS) ---
+      - name: Build Project (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir build && cd build
+          cmake ..
+          make
+
+      - name: Setup vcpkg (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          vcpkg install librdkafka cjson
+
+      - name: Build Project (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+          cmake --build build --config Release
