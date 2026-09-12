@@ -18,7 +18,7 @@ add_executable(kafka_sink main.c)
 
 # Modern target-based dependency linking (Handles include paths automatically)
 target_link_libraries(kafka_sink PRIVATE 
-    rdkafka::rdkafka
+    RdKafka::RdKafka
     cjson
 )
 
