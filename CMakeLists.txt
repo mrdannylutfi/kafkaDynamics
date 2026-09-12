@@ -1,31 +1,28 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(KafkaDynamoDBSink C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Find System Dependencies
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(RDKAFKA REQUIRED rdkafka)
-
-# Find cJSON (Supports both modern CMake config and fallback manually)
-find_package(cjson CONFIG)
-if(NOT cjson_FOUND)
-    find_path(CJSON_INCLUDE_DIR NAMES cjson/cJSON.h)
-    find_library(CJSON_LIBRARY NAMES cjson)
+# Handle vcpkg / conan toolchain integrations automatically if present
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 endif()
 
-# Application Executable Target
+# Find dependencies across multiple platforms
+find_package(rdkafka CONFIG REQUIRED)
+find_package(cjson CONFIG REQUIRED)
+
+# Build Target
 add_executable(kafka_sink main.c)
 
-# Include directories
-target_include_directories(kafka_sink PRIVATE ${RDKAFKA_INCLUDE_DIRS})
-if(cjson_FOUND)
-    target_link_libraries(kafka_sink PRIVATE cjson)
-else()
-    target_include_directories(kafka_sink PRIVATE ${CJSON_INCLUDE_DIR})
-    target_link_libraries(kafka_sink PRIVATE ${CJSON_LIBRARY})
-endif()
+# Modern target-based dependency linking (Handles include paths automatically)
+target_link_libraries(kafka_sink PRIVATE 
+    rdkafka::rdkafka
+    cjson
+)
 
-# Link Libraries
-target_link_libraries(kafka_sink PRIVATE ${RDKAFKA_LIBRARIES})
+# On Windows platforms, explicitly link system socket & helper configurations
+if(WIN32)
+    target_link_libraries(kafka_sink PRIVATE ws2_32 signand)
+endif()
