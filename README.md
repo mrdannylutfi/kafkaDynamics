@@ -58,6 +58,14 @@ The application looks specifically for `flat` payloads fitting the following sch
   "login_count": 1
 }
 ```
+## Multiplatform Support
+To make the C file fully multiplatform: to support Multi-platform OSs ( Linux, macOS, and Windows via `MSVC`),
+we need to address a few cross-platform C development hurdles:
+1. Header differences: Windows uses `<windows.h>` header file
+   (does not feature standard POSIX keywords like `pthread` or `standard error` structures natively in the same way,
+2. `librdkafka`: however, it thankfully abstracts the networking layers internally.
+3. *Infinite Loops & Signals*: Using an absolute `while(1)` block can become a `runaway` background process on Windows if not handled cleanly: Hence we'd replace it with a `volatile` flag controlled by a standard signal handler.
+4. *Cross-Platform String/Buffer Printing*: Safe string mutations differ across operating systems (e.g., `strcpy_s` on Windows vs `strncpy` on Unix). We will standardize stuff using cross-platform `safe` parameters.
 
 ### Compilation via Windows (PowerShell / vcpkg)
 ```powershell
