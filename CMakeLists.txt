@@ -10,7 +10,7 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # Find dependencies across multiple platforms
-find_package(rdkafka CONFIG REQUIRED)
+find_package(RdKafka CONFIG REQUIRED)
 find_package(cjson CONFIG REQUIRED)
 
 # Build Target
