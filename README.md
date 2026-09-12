@@ -58,3 +58,16 @@ The application looks specifically for `flat` payloads fitting the following sch
   "login_count": 1
 }
 ```
+
+### Compilation via Windows (PowerShell / vcpkg)
+```powershell
+# Install system packages via vcpkg
+vcpkg install librdkafka cjson
+
+# Generate build engine
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+cmake --build build --config Release
+```
+
+Would you like to expand the build matrix to include a **GitHub Actions workflow pipeline file (`.github/workflows/build.yml`)** to run tests and cross-compile this project automatically across Linux, macOS, and Windows runners?
+
